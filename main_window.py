@@ -140,7 +140,7 @@ class MainWindow(QMainWindow):
         row = QHBoxLayout()
         row.setSpacing(12)
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Nombre del estudiante, carné (2026-0001) o No. de recibo…")
+        self.search_input.setPlaceholderText("Nombre del estudiante, carné o No. de recibo…")
         self.search_input.returnPressed.connect(self.on_search)
         self.search_input.setClearButtonEnabled(True)
         btn = make_button("Buscar", "primary", pill=True)
@@ -211,9 +211,7 @@ class MainWindow(QMainWindow):
         l1.setObjectName("FieldLabel")
         l2.setObjectName("FieldLabel")
         self.manual_carnet = QLineEdit()
-        self.manual_carnet.setPlaceholderText("2026-0001")
         self.manual_receipt = QLineEdit()
-        self.manual_receipt.setPlaceholderText("25041654")
         self.manual_carnet_info = QLabel("")
         self.manual_receipt_info = QLabel("")
         for lab in (self.manual_carnet_info, self.manual_receipt_info):
