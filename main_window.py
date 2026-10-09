@@ -1,4 +1,3 @@
-"""Ventana principal: conecta AFND (búsqueda), AFD (pago/asistencia), DataManager y las vistas."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -19,9 +18,7 @@ from data_manager import (Candidate, DataManager, DataSourceError, Participant, 
 from widgets import (Banner, Card, DataPanel, StatCard, afd_track, afnd_track, make_button, make_tag,
                      repolish)
 
-# Índices de las vistas
 PAGE_SEARCH, PAGE_CONFIRM, PAGE_RECORDS = 0, 1, 2
-# Subvistas del módulo de búsqueda
 SUB_INTRO, SUB_CANDIDATES, SUB_MANUAL = 0, 1, 2
 
 
@@ -84,9 +81,6 @@ class MainWindow(QMainWindow):
         self._watch.timeout.connect(self._poll_registry)
         self._watch.start()
 
-    # ================================================================== #
-    # Construcción de UI
-    # ================================================================== #
     def _build_sidebar(self) -> QFrame:
         bar = QFrame()
         bar.setObjectName("Sidebar")
@@ -133,7 +127,6 @@ class MainWindow(QMainWindow):
         lay.addStretch(1)
         return bar
 
-    # ---------------------------- Módulo 1 ---------------------------- #
     def _build_search_page(self) -> QWidget:
         page = QWidget()
         lay = QVBoxLayout(page)
@@ -254,7 +247,6 @@ class MainWindow(QMainWindow):
         self.manual_receipt.returnPressed.connect(self.on_manual_link)
         return card
 
-    # ---------------------------- Módulo 2 ---------------------------- #
     def _build_confirm_page(self) -> QWidget:
         page = QWidget()
         lay = QVBoxLayout(page)
@@ -289,7 +281,6 @@ class MainWindow(QMainWindow):
         lay.addLayout(row)
         return page
 
-    # ---------------------------- Módulo 3 ---------------------------- #
     def _build_records_page(self) -> QWidget:
         page = QWidget()
         lay = QVBoxLayout(page)
@@ -356,9 +347,6 @@ class MainWindow(QMainWindow):
         table.horizontalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         table.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
-    # ================================================================== #
-    # Navegación y autómatas
-    # ================================================================== #
     def _go(self, index: int) -> None:
         if index == PAGE_CONFIRM and self.current_participant is None and self.current_payment is None:
             index = PAGE_SEARCH
@@ -385,9 +373,6 @@ class MainWindow(QMainWindow):
         self._sync_tracks()
         return result is not None
 
-    # ================================================================== #
-    # Módulo 1: búsqueda
-    # ================================================================== #
     def on_search(self) -> None:
         raw = self.search_input.text()
         norm = normalize_text(raw)
@@ -407,21 +392,20 @@ class MainWindow(QMainWindow):
         if len(self.candidates) == 1:
             cand = self.candidates[0]
             if cand.participant is not None:
-                self._afnd_event("E")                     # q0 -E-> qM
+                self._afnd_event("E")
                 self._open_confirmation(cand.participant, cand.payment)
             else:
-                # Pago sin carné oficial: no es un match completo → revisión manual
-                self._afnd_event("X")                     # q0 -X-> qR
+                self._afnd_event("X")
                 self._open_manual(prefill_receipt=cand.payment.recibo if cand.payment else "",
                                   note="Se encontró el pago en Tesorería pero no un estudiante oficial asociado. "
                                        "Ingrese el carné para vincularlos.")
         elif len(self.candidates) > 1:
-            self._afnd_event("P")                         # q0 -P-> qC
+            self._afnd_event("P")
             self._fill_candidates()
             self.sub.setCurrentIndex(SUB_CANDIDATES)
             self._go(PAGE_SEARCH)
         else:
-            self._afnd_event("X")                         # q0 -X-> qR
+            self._afnd_event("X")
             self._open_manual(note="Sin coincidencias para esta búsqueda. Verifique el carné y el recibo del estudiante.")
 
     def _fill_candidates(self) -> None:
@@ -453,18 +437,17 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Seleccione un candidato", "Elija una fila de la tabla para continuar.")
             return
         cand = self.candidates[row]
-        if cand.participant is not None and self._afnd_event("S"):    # qC -S-> qM
+        if cand.participant is not None and self._afnd_event("S"):
             self._open_confirmation(cand.participant, cand.payment)
         else:
-            self._afnd_event("X")                                      # qC -X-> qR
+            self._afnd_event("X")
             self._open_manual(prefill_receipt=cand.payment.recibo if cand.payment else "",
                               note="El candidato elegido no tiene estudiante oficial asociado. Ingrese su carné.")
 
     def on_none_matches(self) -> None:
-        self._afnd_event("X")                                          # qC -X-> qR
+        self._afnd_event("X")
         self._open_manual(note="Ningún candidato fue aceptado. Vincule manualmente con carné y recibo.")
 
-    # ---- qR: formulario manual ---- #
     def _open_manual(self, prefill_carnet: str = "", prefill_receipt: str = "", note: str = "") -> None:
         self.manual_carnet.setText(prefill_carnet)
         self.manual_receipt.setText(prefill_receipt)
@@ -494,7 +477,7 @@ class MainWindow(QMainWindow):
         if pay is None:
             self.manual_banner.show_message("danger", "Recibo inválido", "El número de recibo no existe en el reporte de Tesorería.")
             return
-        if not self._afnd_event("S"):                                  # qR -S-> qM
+        if not self._afnd_event("S"):
             self.manual_banner.show_message("danger", "Transición no permitida", "El AFND no admite esta operación en el estado actual.")
             return
         self._open_confirmation(part, pay)
@@ -504,12 +487,9 @@ class MainWindow(QMainWindow):
         self._reset_automata()
         self.search_input.setFocus()
 
-    # ================================================================== #
-    # Módulo 2: confirmación
-    # ================================================================== #
     def _open_confirmation(self, participant: Participant, payment: Optional[Payment]) -> None:
         self.current_participant, self.current_payment = participant, payment
-        self.afd.reiniciar()                                           # q0: identidad confirmada
+        self.afd.reiniciar()
         self.panel_official.set_data({"Carné": participant.carnet, "Nombre oficial": participant.nombre,
                                       "Correo": participant.correo})
         self.panel_official.set_accent("")
@@ -533,19 +513,19 @@ class MainWindow(QMainWindow):
             self.afd.transicion("e")
             self.confirm_banner.show_message("danger", "No se pudo consultar el registro", alert)
         elif payment is None:
-            self.afd.transicion("e")                                   # inconsistencia: sin pago
+            self.afd.transicion("e")
             self.panel_payment.set_accent("danger")
             self.btn_relink.setVisible(True)
             self.confirm_banner.show_message("danger", "Pago no encontrado",
                                              "El estudiante no tiene un recibo vinculado. Use la vinculación manual si cuenta con el número de recibo.")
         elif conflict:
-            self.afd.transicion("e")                                   # duplicidad
+            self.afd.transicion("e")
             self.panel_official.set_accent("danger")
             self.panel_payment.set_accent("danger")
             self.confirm_banner.show_message("danger", "Estudiante ya registrado" if "ya fueron" in conflict else "Recibo duplicado", conflict)
             QMessageBox.warning(self, "Registro duplicado", conflict)
         else:
-            self.afd.transicion("v")                                   # q0 -v-> q1: pago validado
+            self.afd.transicion("v")
             self.panel_payment.set_accent("success")
             hint = ""
             if participant.nombre_norm != payment.nombre_norm:
@@ -560,7 +540,7 @@ class MainWindow(QMainWindow):
         part, pay = self.current_participant, self.current_payment
         if part is None or pay is None or self.afd.obtener_estado() != 1:
             return
-        self.afd.transicion("a")                                       # q1 -a-> q2
+        self.afd.transicion("a")
         self._sync_tracks()
         if not self.afd.es_aceptado():
             self.confirm_banner.show_message("danger", "Operación rechazada", "El AFD cayó en el estado trampa qE.")
@@ -569,7 +549,7 @@ class MainWindow(QMainWindow):
         try:
             stamp = self.dm.register_attendance(part, pay, estado_afd=self.afd.obtener_estado())
         except DataSourceError as exc:
-            self.afd.estado_actual = 1                                 # no se registró: volver a q1
+            self.afd.estado_actual = 1
             self._sync_tracks()
             self.confirm_banner.show_message("danger", "No se pudo guardar el registro", str(exc))
             return
@@ -592,14 +572,11 @@ class MainWindow(QMainWindow):
             return
         carnet = self.current_participant.carnet
         self.afnd.reiniciar()
-        self._afnd_event("X")                                          # q0 -X-> qR
+        self._afnd_event("X")
         self.afd.reiniciar()
         self._sync_tracks()
         self._open_manual(prefill_carnet=carnet, note="Ingrese el número de recibo de Tesorería para este estudiante.")
 
-    # ================================================================== #
-    # Módulo 3: registros
-    # ================================================================== #
     def _poll_registry(self) -> None:
         mtime = self.dm.registry_mtime()
         if mtime != self._registry_mtime:

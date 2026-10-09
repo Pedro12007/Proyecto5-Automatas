@@ -1,4 +1,3 @@
-"""Punto de entrada: Simposio de Ingeniería — Control de Asistencia y Tickets."""
 from __future__ import annotations
 
 import sys
@@ -30,7 +29,6 @@ def _dark_palette() -> QPalette:
 def _load_data(parent: QApplication) -> DataManager:
     base = Path(sys.argv[0]).resolve().parent
     dm = DataManager(base_dir=base)
-    # Si faltan archivos de origen, permitir al usuario localizarlos manualmente.
     labels = {"tesoreria": "Reporte de Tesorería (.xlsx)", "participantes": "Listado oficial de participantes (.xlsx)"}
     for _ in range(2):
         missing = dm.sources_missing()

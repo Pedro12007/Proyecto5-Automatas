@@ -1,4 +1,3 @@
-"""Componentes visuales reutilizables: tarjetas, paneles de datos, banners y badges de autómatas."""
 from __future__ import annotations
 
 from typing import Mapping, Optional, Sequence
@@ -9,7 +8,6 @@ from PyQt6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButt
 
 
 def repolish(widget: QWidget) -> None:
-    """Fuerza a Qt a reevaluar el QSS tras cambiar una propiedad dinámica."""
     widget.style().unpolish(widget)
     widget.style().polish(widget)
     widget.update()
@@ -25,7 +23,6 @@ def make_button(text: str, variant: str = "ghost", pill: bool = False) -> QPushB
 
 
 class Card(QFrame):
-    """Contenedor elevado (Slate Depth, borde Steel Edge, radio 20 px)."""
 
     def __init__(self, title: str = "", subtitle: str = "", parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -50,7 +47,6 @@ class Card(QFrame):
 
 
 class DataPanel(Card):
-    """Panel comparativo: lista de pares etiqueta/valor."""
 
     def __init__(self, title: str, subtitle: str, fields: Sequence[str], parent: Optional[QWidget] = None) -> None:
         super().__init__(title, subtitle, parent)
@@ -93,7 +89,6 @@ class DataPanel(Card):
 
 
 class Banner(QFrame):
-    """Mensaje de estado en línea (info / success / danger / warn)."""
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -137,11 +132,9 @@ class StatePill(QLabel):
 
 
 class AutomatonTrack(QWidget):
-    """Fila de badges con todos los estados de un autómata; resalta el estado actual en tiempo real."""
 
     def __init__(self, title: str, states: Sequence[tuple[int, str, str, str]],
                  parent: Optional[QWidget] = None) -> None:
-        """states: (id numérico, etiqueta, descripción, tono cuando está activo)."""
         super().__init__(parent)
         self._tones = {sid: tone for sid, _, _, tone in states}
         lay = QVBoxLayout(self)

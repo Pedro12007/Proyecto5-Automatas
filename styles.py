@@ -1,20 +1,17 @@
-"""Tokens de DESIGN.md ("Status" — encrypted vault / dark security console) y hoja de estilos QSS global."""
 from __future__ import annotations
 
-# --- Tokens de color (DESIGN.md) -------------------------------------------------
-MIDNIGHT_INK = "#09101c"   # canvas principal
-SLATE_DEPTH = "#131d2f"    # superficie elevada / tarjetas
-STEEL_EDGE = "#1b273d"     # bordes
+MIDNIGHT_INK = "#09101c"  
+SLATE_DEPTH = "#131d2f"    
+STEEL_EDGE = "#1b273d"     
 GRAPHITE_PLATE = "#3a4049"
-SLATE_MIST = "#647084"     # texto secundario / helper
-ASH_LIGHT = "#a1abbd"      # texto terciario / nav inactivo
+SLATE_MIST = "#647084"     
+ASH_LIGHT = "#a1abbd"      
 PALE_MIST = "#dce0e5"
 CLOUD = "#f0f2f5"
 PAPER = "#ffffff"
-SIGNAL_BLUE = "#2a4af5"    # única acción rellena
-STATUS_VIOLET = "#7140fd"  # acento de marca
+SIGNAL_BLUE = "#2a4af5"    
+STATUS_VIOLET = "#7140fd"  
 
-# --- Colores semánticos (no definidos en DESIGN.md; usados solo para estados) ----
 SUCCESS = "#2fbf71"
 SUCCESS_TEXT = "#6fe3a3"
 DANGER = "#ef4b5b"
@@ -25,10 +22,9 @@ SELECTION = "#1a2a63"
 BLUE_HOVER = "#4562ff"
 BLUE_PRESSED = "#2139c4"
 
-# --- Geometría ------------------------------------------------------------------
 RADIUS_CARD = 20
 RADIUS_CONTROL = 12
-RADIUS_PILL = 12  # con altura fija de 24 px produce forma de píldora
+RADIUS_PILL = 12  
 
 FONT_STACK = '"Inter", "Segoe UI", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
 

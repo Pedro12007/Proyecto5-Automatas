@@ -1,4 +1,3 @@
-"""Carga de archivos de origen, cruce Oficial <-> Tesorería y persistencia del registro de asistencia."""
 from __future__ import annotations
 
 import difflib
@@ -25,15 +24,11 @@ _FUZZY_TOKEN_RATIO = 0.78
 _MIN_LINK_COVERAGE = 0.99
 
 
-# --------------------------------------------------------------------------- #
-# Normalización
-# --------------------------------------------------------------------------- #
 def strip_accents(text: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
 
 
 def normalize_text(text: object) -> str:
-    """Mayúsculas, sin tildes, sin símbolos y con espacios colapsados."""
     if text is None or (isinstance(text, float) and pd.isna(text)):
         return ""
     s = strip_accents(str(text)).upper()
@@ -66,9 +61,6 @@ def _format_date(value: object) -> str:
     return str(value).strip()[:10]
 
 
-# --------------------------------------------------------------------------- #
-# Modelos
-# --------------------------------------------------------------------------- #
 @dataclass(frozen=True)
 class Participant:
     carnet: str
@@ -100,7 +92,6 @@ class Payment:
 
 @dataclass
 class Candidate:
-    """Resultado de búsqueda: puede tener solo datos oficiales, solo pago, o ambos."""
     participant: Optional[Participant]
     payment: Optional[Payment]
     registered: bool = False
@@ -129,12 +120,9 @@ class Candidate:
 
 
 class DataSourceError(Exception):
-    """Error al leer o escribir archivos de datos."""
+    pass
 
 
-# --------------------------------------------------------------------------- #
-# Gestor de datos
-# --------------------------------------------------------------------------- #
 class DataManager:
     def __init__(self, base_dir: Path | str | None = None,
                  tesoreria_path: Path | str | None = None,
@@ -146,12 +134,11 @@ class DataManager:
 
         self.participants: list[Participant] = []
         self.payments: list[Payment] = []
-        self._payment_of: dict[str, Payment] = {}     # carnet -> pago
-        self._owner_of: dict[int, Participant] = {}   # id de pago -> participante
+        self._payment_of: dict[str, Payment] = {}
+        self._owner_of: dict[int, Participant] = {}
         self._by_carnet: dict[str, Participant] = {}
         self._by_receipt: dict[str, Payment] = {}
 
-    # ------------------------------ Descubrimiento ------------------------------ #
     def _find(self, patterns: list[str]) -> Optional[Path]:
         for folder in (self.base_dir, Path.cwd()):
             for pat in patterns:
@@ -173,7 +160,6 @@ class DataManager:
                 missing.append("participantes")
         return missing
 
-    # --------------------------------- Carga ---------------------------------- #
     def load_sources(self) -> None:
         if self.sources_missing():
             raise FileNotFoundError("No se encontraron los archivos de origen.")
@@ -183,7 +169,7 @@ class DataManager:
             self.payments = self._read_payments(self.tesoreria_path)
         except PermissionError as exc:
             raise DataSourceError(f"No se puede leer el archivo (¿está abierto en Excel?): {exc}") from exc
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise DataSourceError(f"Error leyendo archivos de origen: {exc}") from exc
         self._by_carnet = {p.carnet: p for p in self.participants}
         self._by_receipt = {pay.recibo: pay for pay in self.payments if pay.recibo}
@@ -207,7 +193,6 @@ class DataManager:
 
     @staticmethod
     def _read_payments(path: Path) -> list[Payment]:
-        """Localiza dinámicamente la fila de encabezados (≈ fila 15) y descarta pies de página."""
         raw = pd.read_excel(path, header=None)
         header_idx: Optional[int] = None
         for i in range(min(len(raw), 60)):
@@ -241,10 +226,8 @@ class DataManager:
                                nombre, float(monto), _clean_str(row[c_conc])))
         return out
 
-    # ------------------------------ Cruce de datos ------------------------------ #
     @staticmethod
     def _token_match(a: list[str], b: list[str]) -> int:
-        """Cuenta tokens de `a` presentes en `b` (exactos o con tolerancia a erratas)."""
         pool = list(b)
         matched = 0
         for tok in a:
@@ -259,7 +242,7 @@ class DataManager:
                 if len(cand) < 4:
                     continue
                 if len(cand) == len(tok) and cand[0] == tok[0] and sorted(cand) == sorted(tok):
-                    best_i, best_r = i, 1.0  # transposición de letras (p. ej. MANEUL/MANUEL)
+                    best_i, best_r = i, 1.0
                     break
                 r = difflib.SequenceMatcher(None, tok, cand).ratio()
                 if r > best_r:
@@ -270,7 +253,6 @@ class DataManager:
         return matched
 
     def _link_sources(self) -> None:
-        """Vincula cada participante oficial con a lo sumo un pago (asignación uno a uno)."""
         pay_tokens = [(pay, pay.nombre_norm.split()) for pay in self.payments]
         pairs: list[tuple[float, float, Participant, Payment]] = []
         for part in self.participants:
@@ -281,7 +263,6 @@ class DataManager:
             for pay, t_tokens in pay_tokens:
                 if len(t_tokens) < 2:
                     continue
-                # Filtro rápido: al menos un token (aprox.) compartido antes de comparar a fondo.
                 if not any(t == first or (len(t) > 3 and len(first) > 3 and t[:3] == first[:3]) for t in t_tokens) \
                         and not set(p_tokens) & set(t_tokens):
                     continue
@@ -308,7 +289,6 @@ class DataManager:
         return {"participantes": len(self.participants), "pagos": len(self.payments),
                 "vinculados": len(self._payment_of)}
 
-    # -------------------------------- Búsqueda -------------------------------- #
     def search(self, query: str) -> list[Candidate]:
         q = normalize_text(query)
         if not q:
@@ -343,7 +323,6 @@ class DataManager:
             found.setdefault(cand.key, cand)
         return sorted(found.values(), key=lambda c: normalize_text(c.display_name))
 
-    # ---------------------------- Vinculación manual ---------------------------- #
     def lookup_carnet(self, carnet: str) -> Optional[Participant]:
         c = _clean_str(carnet)
         if c in self._by_carnet:
@@ -358,7 +337,6 @@ class DataManager:
     def lookup_receipt(self, recibo: str) -> Optional[Payment]:
         return self._by_receipt.get(digits_only(recibo)) or self._by_receipt.get(_clean_str(recibo))
 
-    # -------------------------------- Registro -------------------------------- #
     def ensure_registry(self) -> None:
         if self.registro_path.exists():
             return
@@ -393,7 +371,6 @@ class DataManager:
         return set(df.loc[df["Asistencia_Validada"], "Carnet"].astype(str))
 
     def registry_conflict(self, participant: Participant, payment: Payment) -> Optional[str]:
-        """Devuelve un mensaje si el registro ya contiene a este estudiante o este recibo."""
         df = self.load_registry()
         done = df[df["Asistencia_Validada"]]
         same = done[done["Carnet"].astype(str) == participant.carnet]
@@ -407,7 +384,6 @@ class DataManager:
         return None
 
     def register_attendance(self, participant: Participant, payment: Payment, estado_afd: int = 2) -> str:
-        """Inserta/actualiza la fila del estudiante con asistencia y ticket confirmados."""
         df = self.load_registry()
         stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         row = {
